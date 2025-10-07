@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual Environment
+venv/
+
+# Database
+*.db
+*.sqlite3
+
+# OS-specific
+.DS_Store
+
+# Output directories
+logs/
+predictions/
+recommendations/
+
+# IDEs
+.idea/
+.vscode/
+
+# Model files
+*.pth
