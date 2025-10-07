@@ -55,10 +55,13 @@
 
 ```mermaid
 graph TD
-    A[입력: 시계열 데이터 <br> (가격, 거래량, 지표)] --> B{Transformer Encoder};
-    B --"압축된 시장 맥락<br>(Market Context)"--> C{GAN Decoder};
+    A["입력: 시계열 데이터
+    (가격, 거래량, 지표)"] --> B{Transformer Encoder};
+    B --"압축된 시장 맥락
+    (Market Context)"--> C{GAN Decoder};
     D[무작위 노이즈] --> C;
-    C --"생성된 미래 패턴<br>(6시간 예측)"--> E[결과: 예측 데이터];
+    C --"생성된 미래 패턴
+    (6시간 예측)"--> E[결과: 예측 데이터];
 ```
 
 ## 🚀 시작하기
