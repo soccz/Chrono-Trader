@@ -30,3 +30,4 @@ GPUtil>=1.4.0
 psutil>=5.9.0
 dtaidistance>=2.3.10
 pyts>=0.12.0
+grad-cam>=1.5.0

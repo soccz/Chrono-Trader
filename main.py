@@ -169,5 +169,12 @@ def main():
     elif args.mode == 'screen':
         screener.get_trending_markets()
 
+    elif args.mode == 'explain':
+        if not args.symbol:
+            logger.error("The --symbol argument is required for explain mode.")
+            return
+        logger.info(f"Starting Grad-CAM analysis for {args.symbol} using model {args.model_path}")
+        explainability.run_grad_cam(market=args.symbol, model_path=args.model_path)
+
 if __name__ == "__main__":
     main()
