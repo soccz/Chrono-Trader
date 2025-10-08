@@ -1,56 +1,56 @@
-# Research Log & Methodology Evolution
+# 연구 일지 및 방법론 발전 과정
 
-This document tracks the evolution of the core methodology for the Crypto Predictor project, from its initial conception to the current hybrid architecture. It serves as a log of our thought process and the rationale behind key architectural decisions.
+이 문서는 'Crypto Predictor' 프로젝트의 핵심 방법론이 초기 아이디어 단계에서부터 현재의 하이브리드 아키텍처에 이르기까지 어떻게 발전했는지를 추적합니다. 이 기록은 주요 아키텍처 결정의 배경과 저희의 고민 과정을 담고 있습니다.
 
-## 1. Initial State: Transformer-Conditioned GAN
+## 1. 초기 모델: Transformer-Conditioned GAN
 
-The project began with a sophisticated and novel architecture: a **Transformer-Conditioned Generative Adversarial Network (GAN)**.
+프로젝트는 **'트랜스포머-조건부 생성적 적대 신경망(Transformer-Conditioned GAN)'** 이라는 정교하고 새로운 아키텍처에서 시작되었습니다.
 
--   **Core Idea**: Use a Transformer Encoder to learn the rich temporal context of a time-series and feed this context into a GAN Decoder (Generator) to produce realistic future predictions.
--   **Strength**: This was already a strong baseline, moving beyond simple prediction to a generative approach conditioned on learned patterns.
+-   **핵심 아이디어**: 트랜스포머 인코더를 사용하여 시계열 데이터의 풍부한 시간적 문맥을 학습하고, 이 문맥을 GAN 디코더(생성자)의 조건으로 제공하여 현실적인 미래 예측 패턴을 생성합니다.
+-   **강점**: 단순 예측을 넘어, 학습된 패턴에 기반한 생성적 접근법을 취했다는 점에서 이미 강력한 시작점이었습니다.
 
-## 2. Phase 1: Formalization for Reproducibility
+## 2. 1단계: 논문화를 위한 방법론 정립
 
-With the goal of developing a publishable academic paper, we identified several areas in the initial implementation that needed to be formalized to ensure **reproducibility and methodological soundness**.
+학술 논문으로 발전시키는 것을 목표로, 초기 구현에서 **'재현성'과 '방법론적 타당성'** 을 보장하기 위해 몇 가지 공식화 작업이 필요함을 확인했습니다.
 
-### 2.1. Similarity Metric: From Euclidean to DTW
+### 2.1. 유사도 측정: Euclidean Distance → DTW
 
--   **Initial State**: The `Pattern Following` strategy used Euclidean distance to measure the similarity between a predicted future pattern and other assets' historical patterns.
--   **Problem**: Euclidean distance is not robust to time-shifts. Two patterns with identical shapes but slight temporal offsets would be considered very different.
--   **Solution**: We replaced the Euclidean distance with **Dynamic Time Warping (DTW)**, the academic standard for time-series similarity measurement. This makes the pattern-matching process far more robust and methodologically sound.
+-   **초기 상태**: '후발주 찾기(Pattern Following)' 전략에서 두 패턴의 유사도를 측정하기 위해 '유클리드 거리'를 사용했습니다.
+-   **문제점**: 유클리드 거리는 패턴의 형태가 같더라도 시간 축에서 약간의 뒤틀림(shift)이 있으면 두 패턴이 매우 다르다고 판단하는 한계가 있었습니다.
+-   **해결책**: 시계열 데이터 유사도 측정의 학술적 표준인 **DTW(Dynamic Time Warping)** 로 교체했습니다. 이를 통해 패턴 매칭 과정의 신뢰도와 강건함을 크게 향상시켰습니다.
 
-### 2.2. Model Architecture Specification
+### 2.2. 모델 아키텍처 명세화
 
--   **Initial State**: The `HybridModel` was implemented, but the exact architecture was not explicitly documented within the code.
--   **Problem**: For a paper, the model architecture must be described in unambiguous detail.
--   **Solution**: We analyzed the data flow and formally named the architecture a **"Transformer-Conditioned GAN"**. We added a detailed docstring to the `HybridModel` class explaining the flow: Transformer encodes context -> GAN generates a future sequence based on that context.
+-   **초기 상태**: `HybridModel`이 구현은 되어 있었으나, 정확한 아키텍처가 코드 내에 명시적으로 문서화되어 있지 않았습니다.
+-   **문제점**: 논문은 모델 아키텍처를 다른 연구자가 이해할 수 있도록 명확하게 설명해야 합니다.
+-   **해결책**: 데이터 흐름을 분석하여 아키텍처를 **'Transformer-Conditioned GAN'** 으로 공식 명명하고, `HybridModel` 클래스에 상세한 설명(docstring)을 추가하여 아키텍처를 코드 상에 명세화했습니다.
 
-### 2.3. Screener Logic Formalization
+### 2.3. 스크리너 로직 공식화
 
--   **Initial State**: The logic for selecting "trending" markets used a hardcoded "magic number" for the minimum trading volume (e.g., `100,000,000` KRW).
--   **Problem**: Magic numbers obscure important experimental parameters and hinder reproducibility.
--   **Solution**: We moved the minimum volume threshold into the central `config.py` file as `SCREENER_MIN_VOLUME_KRW`. This defines it as a clear, explicit parameter of our trading strategy.
+-   **초기 상태**: '주도주'를 선별하는 로직에 최소 거래대금(예: `100,000,000`원)이 '매직 넘버'로 하드코딩되어 있었습니다.
+-   **문제점**: '매직 넘버'는 중요한 실험 파라미터를 코드 속에 숨겨 재현성을 저해합니다.
+-   **해결책**: 최소 거래대금 임계값을 `config.py` 파일의 `SCREENER_MIN_VOLUME_KRW` 라는 명시적인 파라미터로 옮겨, 실험 조건을 명확히 정의했습니다.
 
-## 3. A New Idea: From Time-Series to Images & The Power of CNNs
+## 3. 새로운 아이디어: CNN의 도입과 해석 가능성
 
-A key creative insight was proposed: **What if we treat time-series patterns as images?** This opened the door to leveraging the immense power of Convolutional Neural Networks (CNNs).
+**"시계열 패턴을 이미지로 간주하면 어떨까?"** 라는 창의적인 아이디어가 제시되었습니다. 이는 CNN(Convolutional Neural Networks)의 강력한 성능을 활용할 수 있는 새로운 길을 열었습니다.
 
--   **Core Insight**: The strength of CNNs lies in detecting local patterns in data (like pixels in an image). This same strength can be applied to time-series data to find short-term motifs.
--   **The Explainability Breakthrough**: By using a CNN, we can apply well-established explainability techniques like **CAM (Class Activation Mapping) or Grad-CAM**. This would allow us to *visualize* which parts of the historical data (which "pixels" in our pattern "image") the model focused on to make its prediction. This directly addresses the "black box" problem in financial AI and is a massive contribution.
+-   **핵심 아이디어**: CNN은 이미지의 국소적인 픽셀 패턴을 인식하는 데 매우 강력하며, 이 강점을 시계열 데이터의 단기적인 패턴(motif)을 찾는 데 동일하게 적용할 수 있습니다.
+-   **해석 가능성의 발견**: CNN을 사용하면 **CAM 또는 Grad-CAM** 같은 설명가능 AI(XAI) 기법을 적용할 수 있습니다. 이를 통해 모델이 예측을 내릴 때 과거 데이터의 **'어느 부분'** 을 가장 중요하게 보았는지 시각적으로 확인할 수 있습니다. 이는 금융 AI의 '블랙박스' 문제를 해결할 수 있는, 이 연구의 매우 중요한 기여 지점이 될 수 있습니다.
 
-## 4. Current Architecture: A Unified Model for Two Competing Approaches
+## 4. 현재 아키텍처: 두 가지 CNN 접근법을 위한 통합 모델
 
-This new insight led to a crucial research question: What is the *best* way to apply CNNs here?
+이 새로운 아이디어는 "CNN을 어떻게 적용하는 것이 최선인가?"라는 중요한 연구 질문으로 이어졌습니다.
 
--   **Approach A: 1D CNN on Raw Time-Series**: The most direct method. A 1D CNN scans the 1D time-series to find local, temporal patterns (e.g., sharp dips, spikes).
-    -   *Pros*: Fast, intuitive, no complex data transformation.
-    -   *Cons*: May miss non-local or more complex structural patterns.
+-   **접근법 A: 1D CNN 직접 적용**: 1차원 시계열 데이터에 1D CNN을 직접 적용하여 국소적인 시간 패턴(예: 급등, 급락)을 추출합니다.
+    -   *장점*: 빠르고 직관적이며, 복잡한 데이터 변환 과정이 없습니다.
+    -   *단점*: 시간적으로 멀리 떨어진 데이터 간의 복잡한 관계를 놓칠 수 있습니다.
 
--   **Approach B: 2D CNN on GAF Images**: A more complex but potentially more powerful method. The 1D time-series is converted into a 2D image using a Gramian Angular Field (GAF). A 2D CNN then finds spatial patterns in the image, which correspond to complex, long-range temporal correlations.
-    -   *Pros*: Can potentially capture more complex, global patterns.
-    -   *Cons*: Computationally more expensive and adds the complexity of the GAF transformation.
+-   **접근법 B: 2D CNN + 이미지 변환**: GAF(Gramian Angular Field) 등의 기법으로 시계열을 2D 이미지로 변환 후, 2D CNN을 적용합니다. 이미지의 공간적 패턴을 통해 복잡한 시간적 상관관계를 포착할 수 있습니다.
+    -   *장점*: 더 복잡하고 거시적인 패턴을 학습할 잠재력이 있습니다.
+    -   *단점*: 데이터 변환의 복잡성과 추가적인 계산 비용이 발생합니다.
 
-To properly investigate this research question, we have refactored the `HybridModel` to support both approaches.
+이 연구 질문을 탐구하기 위해, `HybridModel`을 두 접근법을 모두 지원하도록 리팩토링했습니다.
 
--   **Implementation**: The model now includes a `config.CNN_MODE` setting. By changing this setting to `'1D'` or `'2D'`, the model will dynamically use the corresponding parallel path (1D CNN or 2D CNN) alongside the Transformer.
--   **Next Step**: This flexible architecture allows us to rigorously conduct comparative experiments (Phase 2) to determine which approach yields better results for this specific problem, strengthening the final paper.
+-   **구현**: `config.CNN_MODE` 설정을 '1D' 또는 '2D'로 변경하여, 트랜스포머와 함께 동작하는 병렬 CNN 경로를 동적으로 선택할 수 있습니다.
+-   **다음 단계**: 이 유연한 아키텍처를 통해, 어떤 접근법이 더 우수한 성능을 보이는지 엄격한 비교 실험(Phase 2)을 수행하여 논문의 깊이를 더할 수 있습니다.
