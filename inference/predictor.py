@@ -30,16 +30,24 @@ def load_and_apply_model_config():
     else:
         logger.info("No model_config.json found. Using default configuration.")
 
+from dtaidistance import dtw
+
 def get_pattern_similarity(pattern1: np.ndarray, pattern2: np.ndarray) -> float:
     """
-    Calculates the similarity between two price change patterns using Euclidean distance.
-    Lower values indicate higher similarity.
+    Calculates the similarity between two price change patterns using Dynamic Time Warping (DTW).
+    DTW is robust to time shifts and scaling. Lower values indicate higher similarity.
     """
-    if len(pattern1) == 0 or len(pattern2) == 0 or len(pattern1) != len(pattern2):
-        return float('inf') # Indicate no similarity or invalid input
+    if len(pattern1) == 0 or len(pattern2) == 0:
+        return float('inf')
 
-    # Euclidean distance
-    distance = np.linalg.norm(pattern1 - pattern2)
+    # Ensure patterns are numpy arrays of the correct type
+    pattern1 = np.array(pattern1, dtype=np.double)
+    pattern2 = np.array(pattern2, dtype=np.double)
+
+    # Calculate DTW distance. The library handles varying lengths, but we expect similar lengths.
+    # The 'distance' is the value of the last cell in the warping path matrix.
+    distance = dtw.distance(pattern1, pattern2)
+    
     return distance
 
 N_INFERENCES = 30 # Number of times to run prediction for MC Dropout

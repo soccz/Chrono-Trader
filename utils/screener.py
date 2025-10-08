@@ -48,7 +48,7 @@ def get_trending_markets(limit: int = 20, lookback_days: int = 3):
             trade_volume = candles[0]['candle_acc_trade_price']
 
             # Filter out low-volume markets
-            if trade_volume > 100000000: # 1억 이상 거래대금
+            if trade_volume > config.SCREENER_MIN_VOLUME_KRW:
                 market_volatility.append({
                     'market': market,
                     'change_pct': change_pct,

@@ -17,11 +17,16 @@ class Config:
     UPBIT_API_URL: str = "https://api.upbit.com/v1/candles/minutes/60" # 60-minute candles
     TARGET_MARKETS: List[str] = field(default_factory=lambda: ["KRW-BTC", "KRW-ETH", "KRW-XRP", "KRW-DOGE", "KRW-SOL"]) # Example markets
 
+    # Screener Settings
+    SCREENER_MIN_VOLUME_KRW: int = 100000000 # 1억 KRW
+
     # Data Preprocessing
     SEQUENCE_LENGTH: int = 48  # Use 48 hours of data to predict the next
     N_FEATURES: int = 13 # Number of features after preprocessing
 
     # Model Parameters (tuned)
+    CNN_MODE: str = '1D' # '1D' or '2D'. Determines the CNN architecture to use.
+    IMAGE_SIZE: int = 24 # For 2D CNN, the size of the GAF image (e.g., 24x24)
     N_ENSEMBLE_MODELS: int = 3
     D_MODEL: int = 256  # Transformer model dimension
     N_HEADS: int = 8    # Number of attention heads

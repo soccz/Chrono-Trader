@@ -28,3 +28,5 @@ ipykernel>=6.15.0
 memory-profiler>=0.60.0
 GPUtil>=1.4.0
 psutil>=5.9.0
+dtaidistance>=2.3.10
+pyts>=0.12.0
