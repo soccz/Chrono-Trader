@@ -5,6 +5,7 @@ from data import database, collector, preprocessor
 from training import trainer
 from inference import predictor, recommender
 from utils import screener
+from analysis import explainability # Import the new module
 from datetime import datetime
 import pandas as pd
 
@@ -12,13 +13,14 @@ def main():
     parser = argparse.ArgumentParser(description="Crypto Predictor CLI v3")
     parser.add_argument(
         '--mode',
-        choices=['init_db', 'train', 'daily', 'screen', 'quick-recommend', 'backtest'],
+        choices=['init_db', 'train', 'daily', 'screen', 'quick-recommend', 'backtest', 'explain'],
         required=True,
         help="The mode to run the script in."
     )
     parser.add_argument('--days', type=int, default=30, help="Number of days for data collection or backtesting.")
     parser.add_argument('--symbol', type=str, help="A specific crypto symbol to predict (e.g., KRW-BTC).")
     parser.add_argument('--tune', action='store_true', help="Enable hyperparameter tuning during training.")
+    parser.add_argument('--model_path', type=str, default='models/model_1.pth', help="Path to the model file for analysis.")
 
     # --- New CLI arguments for configuration overrides ---
     parser.add_argument('--lr', type=float, help="Override learning rate for training.")
