@@ -16,23 +16,6 @@ def run(predictions: list):
         logger.warning("Recommender received no predictions to analyze.")
         return [] # Ensure it returns an empty list if no predictions
 
-    # --- Macro Trend Filter ---
-    market_trend = "NEUTRAL"
-    try:
-        market_index_df = get_market_index()
-        if not market_index_df.empty:
-            market_ma = market_index_df['market_index_return'].rolling(window=20).mean().iloc[-1]
-            latest_market_return = market_index_df['market_index_return'].iloc[-1]
-            if latest_market_return < market_ma:
-                market_trend = "BEAR"
-                logger.info(f"Market Trend Analysis: BEAR (Latest: {latest_market_return:.4f}, MA(20): {market_ma:.4f}). Filtering Long signals.")
-            else:
-                market_trend = "BULL"
-                logger.info(f"Market Trend Analysis: BULL (Latest: {latest_market_return:.4f}, MA(20): {market_ma:.4f}).")
-    except Exception as e:
-        logger.error(f"Could not determine market trend: {e}")
-    # --- End Macro Trend Filter ---
-
     potential_trades = []
     for pred in predictions:
         total_change = np.sum(pred['predicted_pattern'])
@@ -64,19 +47,12 @@ def run(predictions: list):
 
 
     df_to_save = []
-    filtered_count = 0
     logger.info(f"\n=== 상세 암호화폐 거래 추천 [{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ===")
     logger.info(f"분석된 유망 코인 수: {len(predictions)}개")
-    
+    logger.info(f"최종 추천 개수: {len(top_trades)}개")
+
     for i, trade in enumerate(top_trades):
         signal_type = "Long" if trade['potential'] > 0 else "Short"
-
-        # Apply Macro Trend Filter
-        if market_trend == "BEAR" and signal_type == "Long":
-            logger.warning(f"FILTERED: Skipping Long signal for {trade['market']} due to BEAR market trend.")
-            filtered_count += 1
-            continue
-
         signal = f"{signal_type} (매수)" if signal_type == "Long" else f"{signal_type} (매도)"
         entry_price = trade['current_price']
 
@@ -86,7 +62,7 @@ def run(predictions: list):
         df_to_save.append(trade_data)
 
         # --- 사용자 친화적 로그 출력 ---
-        logger.info(f"\n--- {i+1-filtered_count}. {trade['market']} ---")
+        logger.info(f"\n--- {i+1}. {trade['market']} ---")
         logger.info(f"*   추천 신호: {signal}")
         logger.info(f"*   현재 가격: {entry_price:,.0f}원")
         logger.info(f"*   신뢰도: {trade['confidence']:.2%}")
@@ -94,9 +70,6 @@ def run(predictions: list):
         logger.info("*   시간별 예상 등락률:")
         for hour, p_val in enumerate(trade['pattern']):
             logger.info(f"    *   {hour+1}시간 후: {p_val:+.2%}")
-
-    logger.info("\n------------------------------------------------------")
-    logger.info(f"추천 개수: {len(df_to_save)}개 (필터링 된 추천: {filtered_count}개)")
 
     # Save the recommendations to a CSV file
     if df_to_save:

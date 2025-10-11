@@ -117,6 +117,21 @@ pip install -r requirements.txt
   python main.py --mode daily
   ```
 
+## 📈 전체 예측 정확도 분석 방법
+
+이 프로젝트는 과거에 생성된 모든 예측의 정확도를 종합적으로 분석하는 기능을 제공합니다. 이 과정은 대량의 데이터를 효율적으로 처리하기 위해 다음과 같은 3단계로 구성됩니다.
+
+1.  **전체 예측 데이터 통합**
+    *   `recommendations/` 폴더에 흩어져 있는 모든 `recs_*.csv` 파일들을 `all_predictions.csv`라는 하나의 파일로 통합합니다.
+
+2.  **전체 가격 데이터 추출**
+    *   `crypto_data.db` 데이터베이스에서 모든 시세 데이터를 `all_prices.csv` 파일로 한 번에 추출합니다.
+
+3.  **통합 데이터 분석**
+    *   위에서 생성된 두 개의 대용량 CSV 파일(`all_predictions.csv`, `all_prices.csv`)을 읽어, 각 예측에 대한 실제 결과를 매칭하고, 전체 예측에 대한 평균 **방향 정확도(Directional Accuracy)**와 **평균 절대 오차(MAE)**를 계산합니다.
+
+이 과정을 통해 모델의 전체적인 성능을 객관적으로 평가할 수 있습니다.
+
 ## 📜 라이선스
 
 이 프로젝트는 MIT 라이선스를 따릅니다. 자세한 내용은 [LICENSE](LICENSE) 파일을 참고하세요.

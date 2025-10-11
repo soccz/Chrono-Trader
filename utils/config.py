@@ -40,6 +40,7 @@ class Config:
     TRAIN_SPLIT: float = 0.8 # 80% for training, 20% for validation
 
     # Prediction & Recommendation
+    PATTERN_LOOKBACK_HOURS: int = 24 # Hours of historical data for pattern matching
     PREDICTION_THRESHOLD: float = 0.7  # Confidence threshold for making a trade
     MAX_POSITIONS: int = 3 # Max number of concurrent trades
     KELLY_FRACTION: float = 0.2 # Kelly criterion fraction for position sizing

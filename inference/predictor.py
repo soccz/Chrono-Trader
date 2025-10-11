@@ -7,56 +7,27 @@ import json
 from utils.config import config
 from utils.logger import logger
 from data import database, preprocessor
-from models.hybrid_model import build_model
-
-def load_and_apply_model_config():
-    """Checks for a saved model config and applies it to ensure consistency."""
-    config_path = os.path.join("models", "model_config.json")
-    if os.path.exists(config_path):
-        logger.info(f"Loading model configuration from {config_path}")
-        try:
-            with open(config_path, 'r') as f:
-                best_params = json.load(f)
-            
-            # Update config with loaded parameters
-            config.LEARNING_RATE = best_params.get('lr', config.LEARNING_RATE)
-            config.D_MODEL = best_params.get('d_model', config.D_MODEL)
-            config.N_LAYERS = best_params.get('n_layers', config.N_LAYERS)
-            config.N_HEADS = best_params.get('n_heads', config.N_HEADS)
-            config.BATCH_SIZE = best_params.get('batch_size', config.BATCH_SIZE)
-            logger.info("Configuration updated with parameters from saved model config.")
-        except Exception as e:
-            logger.error(f"Failed to load or apply model config: {e}. Using default config.")
-    else:
-        logger.info("No model_config.json found. Using default configuration.")
+# build_model is no longer needed as we load the whole model object
+# from models.hybrid_model import build_model
 
 from dtaidistance import dtw
 
 def get_pattern_similarity(pattern1: np.ndarray, pattern2: np.ndarray) -> float:
     """
     Calculates the similarity between two price change patterns using Dynamic Time Warping (DTW).
-    DTW is robust to time shifts and scaling. Lower values indicate higher similarity.
     """
     if len(pattern1) == 0 or len(pattern2) == 0:
         return float('inf')
 
-    # Ensure patterns are numpy arrays of the correct type
     pattern1 = np.array(pattern1, dtype=np.double)
     pattern2 = np.array(pattern2, dtype=np.double)
-
-    # Calculate DTW distance. The library handles varying lengths, but we expect similar lengths.
-    # The 'distance' is the value of the last cell in the warping path matrix.
     distance = dtw.distance(pattern1, pattern2)
-    
     return distance
 
 N_INFERENCES = 30 # Number of times to run prediction for MC Dropout
 
 def run(markets: list):
     """Makes ensembled, probabilistic predictions for a given list of markets."""
-    # Load the same configuration that the models were trained with
-    load_and_apply_model_config()
-
     logger.info(f"--- Making ensembled predictions for {len(markets)} markets ---")
 
     model_paths = glob.glob(os.path.join("models", "model_*.pth"))
@@ -67,19 +38,14 @@ def run(markets: list):
     logger.info(f"Found {len(model_paths)} ensemble models.")
     models = []
     for path in model_paths:
-        model = build_model(
-            d_model=config.D_MODEL,
-            n_heads=config.N_HEADS,
-            n_layers=config.N_LAYERS,
-            input_dim=config.N_FEATURES,
-            noise_dim=config.GAN_NOISE_DIM,
-            output_dim=6 # Corresponds to FUTURE_WINDOW_SIZE
-        )
         try:
-            model.load_state_dict(torch.load(path, map_location=config.DEVICE))
+            # Load the entire model object directly. 
+            # The architecture and weights are all in this file.
+            model = torch.load(path, map_location=config.DEVICE)
             models.append(model)
-        except RuntimeError as e:
-            logger.error(f"Failed to load model from {path}. It might be incompatible. Error: {e}")
+            logger.info(f"Successfully loaded model from {path}")
+        except Exception as e:
+            logger.error(f"Failed to load model from {path}. It might be incompatible or corrupt. Error: {e}")
             logger.error("Please retrain the model, potentially with the --tune option.")
             return []
 
@@ -120,12 +86,15 @@ def run(markets: list):
                 ensemble_patterns.append(mean_pattern)
                 ensemble_uncertainties.append(uncertainty_score)
 
-        # Average the results from all models in the ensemble
         final_pattern = np.mean(ensemble_patterns, axis=0)
         final_uncertainty = np.mean(ensemble_uncertainties)
 
-        # Get current price for the output
-        current_price = database.load_data(f"SELECT close FROM crypto_data WHERE market = '{market}' ORDER BY timestamp DESC LIMIT 1").iloc[0]['close']
+        current_price_df = database.load_data(f"SELECT close FROM crypto_data WHERE market = '{market}' ORDER BY timestamp DESC LIMIT 1")
+        if not current_price_df.empty:
+            current_price = current_price_df.iloc[0]['close']
+        else:
+            logger.warning(f"Could not retrieve current price for {market}. Skipping.")
+            continue
 
         all_predictions.append({
             "market": market,

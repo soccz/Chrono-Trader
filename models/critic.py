@@ -1,5 +1,6 @@
 
 import torch.nn as nn
+from utils.config import config
 
 class Critic(nn.Module):
     """

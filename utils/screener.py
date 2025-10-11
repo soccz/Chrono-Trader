@@ -3,6 +3,7 @@ import requests
 import pandas as pd
 import time
 from utils.logger import logger
+from utils.config import config
 
 UPBIT_MARKET_API_URL = "https://api.upbit.com/v1/market/all"
 UPBIT_CANDLE_API_URL = "https://api.upbit.com/v1/candles/days"
