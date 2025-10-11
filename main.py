@@ -26,7 +26,7 @@ def display_pump_candidates(potential_pumps):
 
         logger.info(f"▶ {market}")
         logger.info(f"  - 현재가: {current_price:,.0f}원 | 10% 상승 목표가: {target_price:,.0f}원")
-        logger.info(f"  - 급등 확률 (종합): {total_pump_prob:.2%}")
+        logger.info(f"  - 급등 확률 (총합): {total_pump_prob:.2%}")
         logger.info(f"  - 분포: [10-15%]: {probs[1]:.2%} | [15-20%]: {probs[2]:.2%} | [20%+]: {probs[3]:.2%}")
     logger.info("------------------------------------")
 
@@ -66,13 +66,14 @@ def main():
     parser = argparse.ArgumentParser(description="Crypto Predictor CLI v3")
     parser.add_argument(
         '--mode',
-        choices=['init_db', 'train', 'daily', 'screen', 'quick-recommend', 'backtest', 'train-pump', 'find-pumps'],
+        choices=['init_db', 'train', 'daily', 'screen', 'quick-recommend', 'backtest', 'train-pump', 'find-pumps', 'explain'],
         required=True,
         help="The mode to run the script in."
     )
     parser.add_argument('--days', type=int, default=30, help="Number of days for data collection or backtesting.")
     parser.add_argument('--symbol', type=str, help="A specific crypto symbol to predict (e.g., KRW-BTC).")
     parser.add_argument('--tune', action='store_true', help="Enable hyperparameter tuning during training.")
+    parser.add_argument('--model_path', type=str, default='models/model_1.pth', help="Path to the model file for analysis.")
     parser.add_argument('--lr', type=float, help="Override learning rate for training.")
     parser.add_argument('--epochs', type=int, help="Override number of epochs for training.")
     parser.add_argument('--d_model', type=int, help="Override d_model for Transformer/GAN.")
