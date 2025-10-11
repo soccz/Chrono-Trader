@@ -22,7 +22,7 @@ class Config:
 
     # Data Preprocessing
     SEQUENCE_LENGTH: int = 48  # Use 48 hours of data to predict the next
-    N_FEATURES: int = 13 # Number of features after preprocessing
+    N_FEATURES: int = 15 # Number of features after preprocessing (incl. alpha, beta)
 
     # Model Parameters (tuned)
     CNN_MODE: str = '1D' # '1D' or '2D'. Determines the CNN architecture to use.

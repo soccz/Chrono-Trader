@@ -10,32 +10,45 @@ from data.database import load_data, get_db_connection
 
 FUTURE_WINDOW_SIZE = 6
 MAJOR_COINS = ['KRW-BTC', 'KRW-ETH'] # Coins to build the market index
+MARKET_CAP_WEIGHTS = {'KRW-BTC': 0.7, 'KRW-ETH': 0.3} # Approximate market cap weights
 
 def get_market_index() -> pd.DataFrame:
-    """Calculates a market index based on major coins."""
-    logger.info(f"Calculating market index from {MAJOR_COINS}...")
+    """
+    Calculates a market-cap weighted market index based on major coins,
+    similar to the S&P 500.
+    """
+    logger.info(f"Calculating market-cap weighted index from {MAJOR_COINS}...")
     index_df = pd.DataFrame()
+    
     try:
         for coin in MAJOR_COINS:
             query = f"SELECT timestamp, close FROM crypto_data WHERE market = '{coin}' ORDER BY timestamp ASC"
             df = load_data(query)
             if df.empty:
+                logger.warning(f"No data for {coin} to calculate market index.")
                 continue
             df['timestamp'] = pd.to_datetime(df['timestamp'])
             df.set_index('timestamp', inplace=True)
             df[f'{coin}_pct_change'] = df['close'].pct_change()
+            
             if index_df.empty:
                 index_df = df[[f'{coin}_pct_change']]
             else:
                 index_df = index_df.join(df[[f'{coin}_pct_change']], how='outer')
         
-        if index_df.empty:
-            logger.warning("Could not calculate market index, no data for major coins.")
+        if index_df.empty or not all(f'{c}_pct_change' in index_df.columns for c in MAJOR_COINS):
+            logger.warning("Could not calculate market index, data missing for major coins.")
             return pd.DataFrame()
 
-        index_df['market_index'] = index_df.mean(axis=1)
-        index_df['market_index'] = index_df['market_index'].fillna(0)
-        return index_df[['market_index']]
+        # Fill NaNs before calculation
+        index_df.fillna(0, inplace=True)
+
+        # Calculate weighted average
+        index_df['market_index_return'] = (index_df[f'{MAJOR_COINS[0]}_pct_change'] * MARKET_CAP_WEIGHTS[MAJOR_COINS[0]] +
+                                           index_df[f'{MAJOR_COINS[1]}_pct_change'] * MARKET_CAP_WEIGHTS[MAJOR_COINS[1]])
+        
+        logger.info("Market-cap weighted index calculated successfully.")
+        return index_df[['market_index_return']]
 
     except Exception as e:
         logger.error(f"Failed to calculate market index: {e}")
@@ -67,7 +80,7 @@ def create_sequences(data, sequence_length, future_window):
     return np.array(xs), np.array(ys)
 
 def get_processed_data(market: str, market_index_df: pd.DataFrame):
-    """Loads, preprocesses, and prepares data, now including the market index."""
+    """Loads, preprocesses, and prepares data, now including Alpha and Beta."""
     logger.info(f"Processing data for market: {market}")
     
     query = f"SELECT * FROM crypto_data WHERE market = '{market}' ORDER BY timestamp ASC"
@@ -81,15 +94,30 @@ def get_processed_data(market: str, market_index_df: pd.DataFrame):
 
     df = calculate_technical_indicators(df)
 
+    # Join the market-cap weighted index
     df = df.join(market_index_df, how='left')
-    df['market_index'] = df['market_index'].fillna(0)
+    df['market_index_return'] = df['market_index_return'].fillna(0)
+
+    # --- Calculate Alpha and Beta ---
+    df['coin_return'] = df['close'].pct_change().fillna(0)
+    beta_window = 30 # 30-hour rolling window for beta calculation
+
+    # Rolling covariance between coin and market
+    rolling_cov = df['coin_return'].rolling(window=beta_window).cov(df['market_index_return'])
+    # Rolling variance of the market
+    rolling_var = df['market_index_return'].rolling(window=beta_window).var()
+
+    df['beta'] = (rolling_cov / rolling_var).fillna(0)
+    df['alpha'] = (df['coin_return'] - (df['beta'] * df['market_index_return'])).fillna(0)
+    # --- End Alpha and Beta Calculation ---
 
     df['future_pct_change'] = (df['close'].shift(-1) - df['close']) / df['close']
     df.fillna(0, inplace=True)
 
     features_to_scale = [
         'close', 'volume', 'rsi', 'macd', 'macdsignal', 'macdhist', 'adx', 'obv', 
-        'market_index', 'bb_upper', 'bb_middle', 'bb_lower', 'volume_ma'
+        'market_index_return', 'bb_upper', 'bb_middle', 'bb_lower', 'volume_ma',
+        'alpha', 'beta' # Add new features
     ]
     
     scaler = MinMaxScaler()
