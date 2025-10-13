@@ -33,14 +33,14 @@ graph TD
 
     subgraph "System 1: Trend & Pattern Analysis"
         direction TB
-        C -- Time-series Data --> E[Macro-Trend Model<br>(**Transformer + GAN**)];
-        E --> F{Dynamic Pattern<br>Analysis (**DTW**)};
+        C -- Time-series Data --> E[Macro-Trend Model<br>(Transformer + GAN)];
+        E --> F{Dynamic Pattern<br>Analysis (DTW)};
         F --> G[Context-Aware<br>Trend Candidates];
     end
 
     subgraph "System 2: Anomaly Detection"
         direction TB
-        C -- Snapshot Data --> H[Micro-Event Model<br>(**Gradient Boosting**)];
+        C -- Snapshot Data --> H[Micro-Event Model<br>(Gradient Boosting)];
         H --> I[Short-term Pump<br>Candidates];
     end
 
