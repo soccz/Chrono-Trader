@@ -61,15 +61,18 @@ def run(predictions: list):
         trade_data['signal'] = signal_type
         df_to_save.append(trade_data)
 
-        # --- 사용자 친화적 로그 출력 ---
-        logger.info(f"\n--- {i+1}. {trade['market']} ---")
+        # --- 사용자 친화적 로그 출력 (템플릿 적용) ---
+        logger.info(f"\n--- {i+1}. {trade['market']} ({trade['strategy'].upper()}) ---")
         logger.info(f"*   추천 신호: {signal}")
         logger.info(f"*   현재 가격: {entry_price:,.0f}원")
         logger.info(f"*   신뢰도: {trade['confidence']:.2%}")
-        logger.info(f"*   예상 수익률 (6시간 합산): {trade['potential']:.2%}")
-        logger.info("*   시간별 예상 등락률:")
+        
+        logger.info("*   [시스템 출력 1] 시간별 예상 등락률:")
         for hour, p_val in enumerate(trade['pattern']):
             logger.info(f"    *   {hour+1}시간 후: {p_val:+.2%}")
+        
+        logger.info("*   [시스템 출력 2] 종합 예상 수익률 (6시간 합산):")
+        logger.info(f"    *   {trade['potential']:.2%}")
 
     # Save the recommendations to a CSV file
     if df_to_save:
@@ -78,8 +81,8 @@ def run(predictions: list):
         # Format the pattern array for better CSV readability
         df['pattern'] = df['pattern'].apply(lambda p: ','.join([f'{x:.4f}' for x in p]))
 
-        # Reorder columns for clarity
-        df = df[['market', 'signal', 'potential', 'confidence', 'current_price', 'pattern']]
+        # Reorder columns for clarity and add 'strategy'
+        df = df[['market', 'signal', 'strategy', 'potential', 'confidence', 'current_price', 'pattern']]
 
         # Create directory if it doesn't exist
         output_dir = 'recommendations'

@@ -25,3 +25,8 @@ recommendations/
 
 # Model files
 *.pth
+
+# Generated data artifacts
+all_predictions.csv
+all_prices.csv
+data/pump_dataset.csv

@@ -3,6 +3,10 @@ import numpy as np
 import glob
 import os
 import json
+import torch.serialization
+import torch.nn
+import models.hybrid_model
+import models.transformer_encoder
 
 from utils.config import config
 from utils.logger import logger
@@ -39,9 +43,9 @@ def run(markets: list):
     models = []
     for path in model_paths:
         try:
-            # Load the entire model object directly. 
-            # The architecture and weights are all in this file.
-            model = torch.load(path, map_location=config.DEVICE)
+            # Load the entire model object directly by setting weights_only=False.
+            # This is required for recent PyTorch versions.
+            model = torch.load(path, map_location=config.DEVICE, weights_only=False)
             models.append(model)
             logger.info(f"Successfully loaded model from {path}")
         except Exception as e:

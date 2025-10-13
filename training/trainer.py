@@ -9,6 +9,9 @@ import os
 import optuna
 import functools
 import json
+import torch.serialization
+import models.hybrid_model
+import models.transformer_encoder
 
 from utils.config import config
 from utils.logger import logger
@@ -192,7 +195,7 @@ def run(markets: list = None, tune: bool = False):
         model_save_path = os.path.join("models", f"model_{i+1}.pth")
         if is_finetuning and os.path.exists(model_save_path):
             try:
-                generator = torch.load(model_save_path, map_location=config.DEVICE)
+                generator = torch.load(model_save_path, map_location=config.DEVICE, weights_only=False)
                 logger.info(f"Loaded existing model object {i+1} for fine-tuning.")
             except Exception as e:
                 logger.error(f"Could not load model object {i+1}: {e}. Rebuilding from scratch.")
