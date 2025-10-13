@@ -109,3 +109,22 @@ def run(days: int = 90):
     for market in config.TARGET_MARKETS:
         collect_market_data(market, days)
     logger.info("=== Data Collection Finished ===")
+
+def get_current_price(market: str) -> float | None:
+    """Fetches the real-time trade price for a single market from Upbit."""
+    logger.info(f"Fetching real-time price for {market}...")
+    url = "https://api.upbit.com/v1/ticker"
+    params = {"markets": market}
+    try:
+        res = requests.get(url, params=params)
+        res.raise_for_status()
+        data = res.json()
+        if data:
+            price = data[0].get('trade_price')
+            logger.info(f"Real-time price for {market}: {price}")
+            return price
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Failed to fetch current price for {market}: {e}")
+    except (KeyError, IndexError) as e:
+        logger.error(f"Failed to parse price data for {market}: {e}")
+    return None

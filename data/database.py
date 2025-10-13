@@ -1,8 +1,8 @@
-
 import sqlite3
 import pandas as pd
 from utils.config import config
 from utils.logger import logger
+from datetime import datetime
 
 def get_db_connection():
     """Creates a database connection."""
@@ -72,3 +72,29 @@ def load_data(query: str) -> pd.DataFrame:
         return pd.DataFrame()
     finally:
         conn.close()
+
+def get_data_period() -> int:
+    """
+    Calculates the total number of days of data available in the database.
+    """
+    logger.info("Calculating total data period available in the database...")
+    query = "SELECT MIN(timestamp), MAX(timestamp) FROM crypto_data"
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute(query)
+        result = cursor.fetchone()
+        if result and result[0] and result[1]:
+            min_ts_str, max_ts_str = result
+            min_dt = datetime.fromisoformat(min_ts_str)
+            max_dt = datetime.fromisoformat(max_ts_str)
+            days = (max_dt - min_dt).days
+            logger.info(f"Data available from {min_dt} to {max_dt} ({days} days).")
+            return days
+    except Exception as e:
+        logger.error(f"Failed to calculate data period: {e}")
+    finally:
+        conn.close()
+    
+    logger.warning("Could not determine data period. Defaulting to 0.")
+    return 0

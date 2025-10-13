@@ -2,10 +2,11 @@ import argparse
 from utils.logger import logger
 from utils.config import config
 from data import database, collector, preprocessor
+from data.database import get_data_period
 from training import trainer
 from inference import predictor, recommender
 from utils import screener
-from datetime import datetime
+from datetime import datetime, timedelta
 import pandas as pd
 import time
 import os
@@ -62,6 +63,72 @@ def save_pump_predictions_to_csv(pump_predictions: list):
     except Exception as e:
         logger.error(f"Failed to save pump predictions to CSV: {e}")
 
+def find_pattern_followers(leader_market, all_markets):
+    """
+    Finds coins that currently exhibit a pattern similar to the leader's past "setup" patterns.
+    """
+    now = datetime.now()
+    candidates = []
+    
+    logger.info(f"Searching for followers based on {leader_market}'s past setup patterns...")
+
+    # Look for setup patterns from 1, 2, and 3 days ago
+    for lag_days in [1, 2, 3]:
+        lag_hours = lag_days * 24
+        leader_past_time = now - timedelta(hours=lag_hours)
+        
+        # Get the leader's 24-hour pattern from that past time
+        leader_pattern = preprocessor.get_recent_pattern(
+            leader_market, 
+            leader_past_time, 
+            hours=config.PATTERN_LOOKBACK_HOURS
+        )
+        
+        if len(leader_pattern) != config.PATTERN_LOOKBACK_HOURS:
+            continue
+        
+        # Compare with every other coin's CURRENT 24-hour pattern
+        for other_market in all_markets:
+            if other_market == leader_market:
+                continue
+            
+            follower_pattern = preprocessor.get_recent_pattern(
+                other_market,
+                now,
+                hours=config.PATTERN_LOOKBACK_HOURS
+            )
+            
+            if len(follower_pattern) != config.PATTERN_LOOKBACK_HOURS:
+                continue
+            
+            # Calculate DTW similarity
+            similarity = predictor.get_pattern_similarity(leader_pattern, follower_pattern)
+            
+            candidates.append({
+                'market': other_market,
+                'similarity': similarity,
+                'lag_days': lag_days,
+                'interpretation': f"Matches {leader_market}'s pattern from {lag_days} day(s) ago."
+            })
+    
+    if not candidates:
+        return []
+
+    # Sort by similarity
+    candidates.sort(key=lambda x: x['similarity'])
+    
+    # Avoid duplicates, taking the best match for each market
+    top_candidates = []
+    seen_markets = set()
+    for cand in candidates:
+        if cand['market'] not in seen_markets:
+            top_candidates.append(cand)
+            seen_markets.add(cand['market'])
+        if len(top_candidates) >= 5: # Limit to top 5 unique followers
+            break
+
+    return top_candidates
+
 def main():
     parser = argparse.ArgumentParser(description="Crypto Predictor CLI v3")
     parser.add_argument(
@@ -96,9 +163,14 @@ def main():
     
     elif args.mode == 'train':
         logger.info("Starting full model training...")
-        if args.days < 90: logger.warning(f"For initial training, a period of at least 90 days is recommended. Using --days={args.days}.")
+        
+        # Dynamically determine the training period based on available data
+        days_available = get_data_period()
+        training_days = min(max(days_available, 90), 365)
+        logger.info(f"Data available for {days_available} days. Training will use data from the last {training_days} days.")
+
         for market in config.TARGET_MARKETS:
-             collector.collect_market_data(market, days=args.days)
+             collector.collect_market_data(market, days=training_days)
              time.sleep(0.5)
         trainer.run(tune=args.tune)
 
@@ -137,40 +209,39 @@ def main():
             logger.info("--- Running Main Trend Prediction Module ---")
             all_krw_markets_df = database.load_data("SELECT DISTINCT market FROM crypto_data WHERE market LIKE 'KRW-%'")
             all_krw_markets = all_krw_markets_df['market'].tolist() if not all_krw_markets_df.empty else []
+            
+            # 1. Get predictions for currently trending markets
             initial_predictions = predictor.run(markets=trending_markets)
 
-            pattern_following_candidates = []
-            if initial_predictions:
-                target_pattern = initial_predictions[0]['predicted_pattern']
+            pattern_follower_predictions = []
+            if trending_markets and initial_predictions:
+                # 2. Use the top trending market as the leader
+                leader_market = trending_markets[0]
+                
+                # 3. Find followers using the new DTW logic
                 other_markets = [m for m in all_krw_markets if m not in trending_markets]
-                logger.info(f"Searching for pattern-following coins among {len(other_markets)} markets...")
-                for other_market in other_markets:
-                    recent_historical_pattern = preprocessor.get_recent_pattern(other_market, datetime.now(), hours=config.PATTERN_LOOKBACK_HOURS)
-                    if len(recent_historical_pattern) == config.PATTERN_LOOKBACK_HOURS:
-                        similarity = predictor.get_pattern_similarity(target_pattern, recent_historical_pattern)
-                        pattern_following_candidates.append({'market': other_market, 'similarity': similarity})
+                top_pattern_followers = find_pattern_followers(leader_market, other_markets)
                 
-                pattern_following_candidates.sort(key=lambda x: x['similarity'])
-                top_pattern_followers = pattern_following_candidates[:3]
-                
-                logger.info(f"Found {len(top_pattern_followers)} pattern-following candidates: {[c['market'] for c in top_pattern_followers]}")
+                logger.info(f"Found {len(top_pattern_followers)} pattern-following candidates:")
+                for cand in top_pattern_followers:
+                    logger.info(f"  - {cand['market']} (Similarity: {cand['similarity']:.4f}, {cand['interpretation']})")
 
-                pattern_follower_predictions = []
+                # 4. Get predictions for the followers
                 if top_pattern_followers:
-                    logger.info("Collecting latest data for pattern-following coins...")
-                    for candidate in top_pattern_followers:
-                        collector.collect_market_data(candidate['market'], days=30)
+                    follower_markets = [c['market'] for c in top_pattern_followers]
+                    logger.info(f"Collecting latest data for {len(follower_markets)} pattern-following coins...")
+                    for market in follower_markets:
+                        collector.collect_market_data(market, days=30)
                         time.sleep(0.5)
                     logger.info("Making predictions for pattern-following coins...")
-                    pattern_follower_predictions = predictor.run(markets=[c['market'] for c in top_pattern_followers])
-                
-                for pred in initial_predictions: pred['strategy'] = 'trending'
-                for pred in pattern_follower_predictions: pred['strategy'] = 'pattern'
-                
-                all_predictions = initial_predictions + pattern_follower_predictions
-                recommender.run(predictions=all_predictions)
-            else:
-                logger.info("No initial trend predictions to base pattern following on.")
+                    pattern_follower_predictions = predictor.run(markets=follower_markets)
+            
+            # 5. Combine and assign strategy labels
+            for pred in initial_predictions: pred['strategy'] = 'trending'
+            for pred in pattern_follower_predictions: pred['strategy'] = 'pattern'
+            
+            all_predictions = initial_predictions + pattern_follower_predictions
+            recommender.run(predictions=all_predictions)
 
             # --- Running Pump Prediction Module ---
             potential_pumps = pump_predictor.run()

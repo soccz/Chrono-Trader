@@ -10,14 +10,55 @@ from data.database import load_data, get_db_connection
 
 FUTURE_WINDOW_SIZE = 6
 MAJOR_COINS = ['KRW-BTC', 'KRW-ETH'] # Coins to build the market index
-MARKET_CAP_WEIGHTS = {'KRW-BTC': 0.7, 'KRW-ETH': 0.3} # Approximate market cap weights
+
+def get_market_weights() -> dict:
+    """
+    Dynamically calculates market weights for major coins based on recent trading value.
+    """
+    logger.info("Dynamically calculating market weights based on recent 30-day trading value...")
+    weights = {}
+    total_value = 0
+    
+    try:
+        for coin in MAJOR_COINS:
+            query = f"""
+                SELECT AVG(close * volume) 
+                FROM crypto_data 
+                WHERE market = '{coin}' 
+                AND timestamp >= date('now', '-30 days')
+            """
+            avg_value_df = load_data(query)
+            if avg_value_df.empty or avg_value_df.iloc[0, 0] is None:
+                logger.warning(f"Could not calculate average trading value for {coin}. It will be excluded from dynamic weighting.")
+                avg_value = 0
+            else:
+                avg_value = avg_value_df.iloc[0, 0]
+            
+            weights[coin] = avg_value
+            total_value += avg_value
+
+        if total_value > 0:
+            for coin in weights:
+                weights[coin] = weights[coin] / total_value
+            logger.info(f"Calculated dynamic weights: {weights}")
+            return weights
+            
+    except Exception as e:
+        logger.error(f"Failed to calculate dynamic market weights: {e}")
+
+    # Fallback to default weights if calculation fails
+    logger.warning("Using default market cap weights (70/30).")
+    return {'KRW-BTC': 0.7, 'KRW-ETH': 0.3}
 
 def get_market_index() -> pd.DataFrame:
     """
-    Calculates a market-cap weighted market index based on major coins,
-    similar to the S&P 500.
+    Calculates a market-cap weighted market index based on major coins.
+    Weights are now calculated dynamically.
     """
-    logger.info(f"Calculating market-cap weighted index from {MAJOR_COINS}...")
+    logger.info(f"Calculating market index from {MAJOR_COINS}...")
+    
+    # Get dynamic weights instead of using hardcoded ones
+    market_weights = get_market_weights()
     index_df = pd.DataFrame()
     
     try:
@@ -43,9 +84,9 @@ def get_market_index() -> pd.DataFrame:
         # Fill NaNs before calculation
         index_df.fillna(0, inplace=True)
 
-        # Calculate weighted average
-        index_df['market_index_return'] = (index_df[f'{MAJOR_COINS[0]}_pct_change'] * MARKET_CAP_WEIGHTS[MAJOR_COINS[0]] +
-                                           index_df[f'{MAJOR_COINS[1]}_pct_change'] * MARKET_CAP_WEIGHTS[MAJOR_COINS[1]])
+        # Calculate weighted average using dynamic weights
+        index_df['market_index_return'] = (index_df[f'{MAJOR_COINS[0]}_pct_change'] * market_weights[MAJOR_COINS[0]] +
+                                           index_df[f'{MAJOR_COINS[1]}_pct_change'] * market_weights[MAJOR_COINS[1]])
         
         logger.info("Market-cap weighted index calculated successfully.")
         return index_df[['market_index_return']]

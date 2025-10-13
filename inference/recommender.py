@@ -6,6 +6,7 @@ from datetime import datetime
 from utils.config import config
 from utils.logger import logger
 from data.preprocessor import get_market_index
+from data.collector import get_current_price # 실시간 가격 조회를 위해 import
 
 
 def run(predictions: list):
@@ -26,19 +27,28 @@ def run(predictions: list):
             'potential': total_change,
             'pattern': pred['predicted_pattern'],
             'confidence': confidence,
-            'current_price': pred['current_price'],
+            'uncertainty': pred['uncertainty'], # 필터링을 위해 불확실성 점수 추가
+            'current_price': pred['current_price'], # 분석 시작 시점의 가격 (Fallback용)
             'strategy': pred.get('strategy', 'trending') # Default to 'trending' for safety
         })
 
+    # --- 불확실성 기반 필터링 ---
+    initial_count = len(potential_trades)
+    filtered_trades = [t for t in potential_trades if t['uncertainty'] <= 5.0]
+    filtered_count = initial_count - len(filtered_trades)
+    if filtered_count > 0:
+        logger.info(f"Filtered out {filtered_count} recommendations due to high uncertainty (> 5.0).")
+    # --------------------------
+
     # Separate by strategy
-    trending_trades = [t for t in potential_trades if t['strategy'] == 'trending']
-    pattern_trades = [t for t in potential_trades if t['strategy'] == 'pattern']
+    trending_trades = [t for t in filtered_trades if t['strategy'] == 'trending']
+    pattern_trades = [t for t in filtered_trades if t['strategy'] == 'pattern']
 
     # Sort trending trades by confidence and take top 5
     trending_trades.sort(key=lambda x: x['confidence'], reverse=True)
     top_trending = trending_trades[:5]
 
-    # Pattern trades are already the top 3, so just sort them by confidence
+    # Pattern trades are already the top 3-5, so just sort them by confidence
     pattern_trades.sort(key=lambda x: x['confidence'], reverse=True)
 
     # Combine and create the final list for display
@@ -49,16 +59,20 @@ def run(predictions: list):
     df_to_save = []
     logger.info(f"\n=== 상세 암호화폐 거래 추천 [{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ===")
     logger.info(f"분석된 유망 코인 수: {len(predictions)}개")
-    logger.info(f"최종 추천 개수: {len(top_trades)}개")
+    logger.info(f"최종 추천 개수: {len(top_trades)}개 (불확실성 필터링 적용)")
 
     for i, trade in enumerate(top_trades):
         signal_type = "Long" if trade['potential'] > 0 else "Short"
         signal = f"{signal_type} (매수)" if signal_type == "Long" else f"{signal_type} (매도)"
-        entry_price = trade['current_price']
+        
+        # 실시간 가격 조회 (실패 시 기존 가격 사용)
+        live_price = get_current_price(trade['market'])
+        entry_price = live_price if live_price is not None else trade['current_price']
 
         # --- 데이터 프레임 저장용 데이터 준비 ---
         trade_data = trade.copy()
-        trade_data['signal'] = signal_type
+        trade_data['signal'] = signal_type # 누락되었던 signal 정보 추가
+        trade_data['current_price'] = entry_price # 실시간 가격으로 업데이트
         df_to_save.append(trade_data)
 
         # --- 사용자 친화적 로그 출력 (템플릿 적용) ---
