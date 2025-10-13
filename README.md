@@ -1,59 +1,74 @@
-# 🤖 Chrono-Trader
-### 듀얼 AI 모델 기반 암호화폐 트레이딩 봇
+# 🤖 Chrono-Trader: A Hybrid AI Framework for Multi-faceted Cryptocurrency Market Prediction
 
-**Chrono-Trader**는 두 개의 독립적인 AI 시스템을 결합하여 암호화폐 시장의 복잡한 움직임에 대응하는 자동 거래 프로젝트입니다. 장기적인 추세 예측과 단기적인 급등 예측을 동시에 수행하여 보다 정교한 투자 기회를 포착하는 것을 목표로 합니다.
+## Abstract
 
-<br>
+This document introduces **Chrono-Trader**, a novel framework for algorithmic cryptocurrency trading designed to address the market's inherent volatility and non-linearity. We propose a dual-system architecture that operates in parallel: (1) a **Transformer-GAN based model** for forecasting macroscopic market trends and identifying pattern-following opportunities, and (2) a **Gradient Boosting (XGBoost) model** for the classification of microscopic, short-term pump events. The core contribution of this research lies in its synergistic application of deep learning for time-series analysis and machine learning for anomaly detection, synthesized through a risk-aware recommendation engine. This hybrid approach allows for a more holistic understanding of market dynamics than single-model systems.
 
-## 💻 설치 및 실행 (Installation & Usage)
+---
 
-**1. 저장소 복제**
-```bash
-git clone https://github.com/soccz/Chrono-Trader.git
-cd Chrono-Trader
+### **1. Introduction**
+
+The cryptocurrency market's high volatility and non-linear characteristics present significant challenges for traditional financial prediction models. Simple predictive systems often fail to capture the market's dual nature, which is driven by both long-term trends and short-term speculative events. To tackle this, we developed Chrono-Trader, a system designed to analyze and act on these distinct market phenomena concurrently.
+
+### **2. Proposed Method**
+
+#### **2.1. System Architecture**
+
+Our framework is composed of two specialized, parallel-processing AI systems that feed into a final recommendation synthesizer. This design allows each model to focus on the task for which it is best suited.
+
+```mermaid
+graph TD
+    subgraph " "
+        direction LR
+        A[Real-time &<br>Historical Market Data] --> B(Data Pipeline);
+        B --> C{Feature-Engineered<br>Dataset};
+    end
+
+    subgraph System 1: Trend & Pattern Analysis
+        direction TB
+        C -- Time-series Data --> E[Macro-Trend Model<br>(Transformer + GAN)];
+        E --> F{Dynamic Pattern<br>Analysis (DTW)};
+        F --> G[Context-Aware<br>Trend Candidates];
+    end
+
+    subgraph System 2: Anomaly Detection
+        direction TB
+        C -- Snapshot Data --> H[Micro-Event Model<br>(Gradient Boosting)];
+        H --> I[Short-term Pump<br>Candidates];
+    end
+
+    subgraph Synthesis & Execution
+        direction TB
+        G & I --> J(Recommendation<br>Synthesizer);
+        J -- Uncertainty &<br>Risk-Management Filter --> K[Final Trading<br>Signals];
+    end
+
+    style A fill:#222,stroke:#333,stroke-width:2px,color:#fff
+    style K fill:#D5E8D4,stroke:#82B366,stroke-width:4px,color:#000
 ```
 
-**2. 필요 라이브러리 설치**
-```bash
-pip install -r requirements.txt
-```
+#### **2.2. Key Methodologies**
 
-**3. 일일 리포트 생성 (주요 기능)**
-```bash
-python main.py --mode daily
-```
+- **Hybrid AI Modeling:** A state-of-the-art **Transformer-GAN architecture** is employed for robust time-series forecasting, capturing long-range dependencies. This is complemented by a powerful **Gradient Boosting model (XGBoost)** for high-speed classification of pump-and-dump indicators.
 
-<br>
+- **Multi-Scale Convolutional Analysis:** The trend model incorporates a **multi-scale 1D CNN** layer, allowing the system to simultaneously analyze market data across different temporal resolutions for richer, more nuanced feature extraction.
 
-## ✨ 주요 기능 (Key Features)
+- **Dynamic Time Warping (DTW) for Pattern Discovery:** The system moves beyond simple correlation by using DTW to identify non-linear similarities between price action. This enables the discovery of "follower" assets that mimic the pre-breakout patterns of market "leaders."
 
-- **🧠 듀얼 예측 시스템 (Dual Prediction System)**
-  - **Trend Model (Transformer+GAN):** 시계열의 전역적인 컨텍스트와 패턴을 학습하여 미래 가격 '흐름'을 예측합니다.
-  - **Pump Model (XGBoost):** 특정 시점의 다양한 지표를 기반으로 단기 '급등' 확률을 분류합니다.
-  - *두 모델의 시너지를 통해, 한쪽 모델이 놓칠 수 있는 시장의 기회를 다른 모델이 포착하여 보완합니다.*
+- **Adaptive System Parameters:** Key system parameters, such as market index composition and training data look-back periods, are **dynamically adjusted** based on recent market volatility and volume, ensuring the model adapts to changing market regimes.
 
-- **📈 동적 패턴 분석 (Dynamic Pattern Analysis)**
-  - DTW(Dynamic Time Warping) 알고리즘을 활용하여, 시장 주도주의 과거 '급등 준비 패턴'을 현재 시점에서 유사하게 따라가는 '추종 코인'을 효과적으로 발굴합니다.
-  - *단순히 가격이 오르는 종목을 찾는 것을 넘어, 특정 '급등 전 매집 패턴'을 학습하여 선행 매매 기회를 찾습니다.*
+### **3. System Implementation & Usage**
 
-- **👁️ 멀티스케일 특징 추출 (Multi-Scale Feature Extraction)**
-  - 단일 CNN을 넘어, 여러 크기의 커널을 사용하는 `Multi-Scale CNN` 아키텍처를 도입하여 짧은 패턴과 중간 길이의 패턴을 동시에 포착하고 분석합니다.
-  - *이를 통해 급격한 가격 변화와 점진적인 추세 변화를 모두 모델링에 반영할 수 있습니다.*
+- **Technology Stack:** `Python`, `PyTorch`, `Pandas`, `scikit-learn`, `XGBoost`, `SQLite`
+- **Primary Execution Command:**
+  ```bash
+  # Executes the full daily pipeline: screening, model fine-tuning, and recommendation.
+  python main.py --mode daily
+  ```
 
-- **⚙️ 적응형 시장 분석 (Adaptive Market Analysis)**
-  - 시장 상황에 따라 BTC/ETH 시장 지수 가중치를 동적으로 조절하고, 학습 데이터 기간을 유연하게 확장하여 시장 변화에 더 빠르게 적응합니다.
-  - *고정된 값 대신, 최근 30일 거래대금 등을 반영하여 시장의 현재 영향력을 가중치에 적용합니다.*
+### **4. Ongoing & Future Research**
 
-- **🛡️ 리스크 관리 추천 (Risk-Managed Recommendations)**
-  - 앙상블 모델의 예측 불확실성(Uncertainty)을 측정하여, 신뢰도가 낮은 추천은 최종 결과에서 자동으로 필터링하여 안정성을 높입니다.
-  - *수익률이 높게 예측되더라도, 모델의 확신이 부족한 경우는 추천에서 제외하여 위험을 관리합니다.*
-
-<br>
-
-## ⚙️ 일일 워크플로우 (`daily` mode)
-1.  **시장 스크리닝:** 최근 거래량과 가격 변동성을 기반으로 주목할 만한 'Trending' 코인 선정.
-2.  **모델 강화 학습:** 선정된 코인의 최신 데이터로 트렌드 예측 모델(Transformer+GAN)과 급등 예측 모델(XGBoost)을 파인튜닝.
-3.  **1차 예측 (Trending):** 강화된 모델로 'Trending' 코인들의 미래 가격 패턴 예측.
-4.  **2차 예측 (Pattern):** 가장 강력한 'Trending' 코인을 주도주로 선정, 주도주의 과거 패턴과 유사한 'Pattern' 코인 탐색 및 예측.
-5.  **최종 추천:** 두 전략의 모든 예측 결과를 신뢰도 순으로 정렬하고, 불확실성 필터를 거쳐 최종 تريد 목록 생성.
-6.  **급등 예측:** 전체 시장을 대상으로 단기 급등 가능성이 높은 코인 별도 탐색 및 결과 제공.
+This project serves as a foundation for further research. Key areas for future work include:
+-   Research on applying model uncertainty for dynamic, risk-adjusted position sizing.
+-   Integration of macroeconomic indicators and on-chain data to enrich the feature set.
+-   Development of a reinforcement learning agent for optimizing trade execution and portfolio management.
