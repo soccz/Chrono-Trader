@@ -1,138 +1,59 @@
-<div align="center">
+# 🤖 Chrono-Trader
+### 듀얼 AI 모델 기반 암호화폐 트레이딩 봇
 
-# 🤖 Chrono-Trader 📈
+**Chrono-Trader**는 두 개의 독립적인 AI 시스템을 결합하여 암호화폐 시장의 복잡한 움직임에 대응하는 자동 거래 프로젝트입니다. 장기적인 추세 예측과 단기적인 급등 예측을 동시에 수행하여 보다 정교한 투자 기회를 포착하는 것을 목표로 합니다.
 
-**최첨단 하이브리드 AI 기반 암호화폐 예측 및 추천 엔진**
+<br>
 
-</div>
+## 💻 설치 및 실행 (Installation & Usage)
 
-<div align="center">
-
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) 
-[![Python: 3.8+](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/downloads/) 
-[![PyTorch](https://img.shields.io/badge/PyTorch-%23EE4C2C.svg?style=flat&logo=PyTorch&logoColor=white)](https://pytorch.org/) 
-[![Transformers](https://img.shields.io/badge/🤗%20Transformers-blue.svg)](https://github.com/huggingface/transformers)
-
-</div>
-
-**Chrono-Trader**는 시장의 복잡한 패턴을 분석하고, 잠재력 높은 거래 기회를 포착하는 암호화폐 예측 및 추천 엔진입니다. **하이브리드 AI 모델**을 통해 시장의 깊은 맥락과 국소적인 패턴을 동시에 이해하며, **다중 분류 급등 예측 모델**로 단기적인 고수익 기회를 탐색합니다. 지속적인 데이터 학습 및 모델 미세조정을 통해 변화하는 시장에 끊임없이 적응합니다.
-
----
-
-## ✨ 주요 특징
-
-- **🧠 하이브리드 AI 모델 (시스템 1)**: **Transformer**가 시장의 전반적인 맥락을 이해하고, **1D CNN**이 국소적인 가격 패턴(급등/급락)을 포착합니다. 이 두 정보가 융합되어 **GAN Decoder**가 현실적인 미래 가격 시나리오를 생성합니다.
-- **🚀 다중 분류 급등 예측 (시스템 2)**: **XGBoost** 기반의 모델이 향후 6시간 내 +10% 이상 급등할 코인을 포착하고, 그 **급등폭의 분포(10-15%, 15-20%, 20%+)**까지 예측합니다.
-- **📊 시장 맥락 인지**: '시장 지수 수익률'을 학습 변수로 사용하여, 모델이 시장 전체의 흐름을 지능적으로 고려하여 예측합니다. (외부 필터 제거)
-- **🛡️ 견고한 모델 관리**: 모델 저장 및 로딩 방식을 개선하여, 하이퍼파라미터 튜닝으로 모델 구조가 변경되어도 안정적으로 동작합니다.
-- **🤖 앙상블 학습**: 세 개의 독립적인 하이브리드 모델을 함께 사용(Ensemble)하여 예측의 안정성과 신뢰도를 극대화합니다.
-- **🔄 지속적인 학습 및 최적화**: `daily` 파이프라인을 통해 최신 데이터를 자동으로 수집하고, 모델을 점진적으로 개선하여 시장 변화에 대응합니다。
-
-## 🛠️ 기술 스택
-
-| 구분      | 기술                                                                                                        |
-|-----------|-------------------------------------------------------------------------------------------------------------|
-| **주요 언어** | Python 3.8+                                                                                                 |
-| **AI/ML** | PyTorch, Transformers (Hugging Face), Scikit-learn, Optuna (하이퍼파라미터 튜닝), pandas-ta, XGBoost        |
-| **데이터**    | Pandas, NumPy, SQLite                                                                                       |
-| **유틸리티**  | Argparse (CLI), Logger, Requests                                                                            |
-
-## 🏛️ 모델 아키텍처
-
-**Chrono-Trader**는 두 가지 핵심 시스템으로 구성됩니다.
-
-### **시스템 1: 하이브리드 예측 엔진 (Transformer + CNN + GAN)**
-
-**Transformer Encoder**와 **1D CNN Encoder**가 시계열 데이터를 병렬로 분석하여 각각 전역적인 시장 맥락과 국소적인 패턴을 추출합니다. 이 두 가지 강력한 특징은 융합 과정을 거쳐 **GAN Decoder**에 전달되며, GAN Decoder는 이를 바탕으로 현실적인 미래 6시간 가격 패턴을 생성합니다。
-
-```mermaid
-graph TD
-    A["입력: 시계열 데이터\n(가격, 거래량, 지표, 시장 지수)"] --> B{Transformer Encoder};
-    A --> C{1D CNN Encoder};
-    B --"전역적 맥락"--> D(특징 융합);
-    C --"국소적 패턴"--> D;
-    E[무작위 노이즈] --> F{GAN Decoder};
-    D --"융합된 특징"--> F;
-    F --"생성된 미래 패턴\n(6시간 예측)"--> G[결과: 예측 데이터];
-```
-
-### **시스템 2: 급등 포착 엔진 (XGBoost)**
-
-**XGBoost Classifier**는 가격, 거래량, 지표, 시장 지수 및 급등 특화 특징을 입력으로 받아, 향후 6시간 내 발생할 급등의 확률 분포(10-15%, 15-20%, 20%+)를 예측합니다。
-
-```mermaid
-graph TD
-    H["입력: 시계열 데이터\n(가격, 거래량, 지표, 시장 지수,\n급등 특화 특징)"] --> I{XGBoost Classifier};
-    I --"급등 확률 분포\n(10-15%, 15-20%, 20%+)"--> J[결과: 급등 예측];
-```
-
-## 🚀 시작하기
-
-### 1. 사전 준비
-
-Python 3.8+ 버전이 시스템에 설치되어 있어야 합니다. (더 이상 `TA-Lib` C 라이브러리 설치는 필요 없습니다.)
-
-### 2. 설치
-
-저장소를 복제(clone)하고, 가상환경 내에 필요한 Python 패키지를 설치합니다.
-
+**1. 저장소 복제**
 ```bash
-# 저장소 복제
 git clone https://github.com/soccz/Chrono-Trader.git
 cd Chrono-Trader
+```
 
-# 가상환경 생성 및 활성화
-python3 -m venv venv
-source venv/bin/activate
-
-# 의존성 설치
+**2. 필요 라이브러리 설치**
+```bash
 pip install -r requirements.txt
 ```
 
-### 3. 사용법
+**3. 일일 리포트 생성 (주요 기능)**
+```bash
+python main.py --mode daily
+```
 
-`main.py` 스크립트를 통해 다양한 모드로 실행할 수 있습니다.
+<br>
 
-- **데이터베이스 초기화 (최초 1회 실행):**
-  ```bash
-  python main.py --mode init_db
-  ```
+## ✨ 주요 기능 (Key Features)
 
-- **전체 모델 재훈련 (필수):**
-  ```bash
-  # 1. 메인 모델 훈련 (하이퍼파라미터 튜닝 포함)
-  python main.py --mode train --tune --days 90
-  # 2. 급등 예측 모델 훈련
-  python main.py --mode train-pump
-  ```
+- **🧠 듀얼 예측 시스템 (Dual Prediction System)**
+  - **Trend Model (Transformer+GAN):** 시계열의 전역적인 컨텍스트와 패턴을 학습하여 미래 가격 '흐름'을 예측합니다.
+  - **Pump Model (XGBoost):** 특정 시점의 다양한 지표를 기반으로 단기 '급등' 확률을 분류합니다.
+  - *두 모델의 시너지를 통해, 한쪽 모델이 놓칠 수 있는 시장의 기회를 다른 모델이 포착하여 보완합니다.*
 
-- **일일 추천 파이프라인 실행:**
-  ```bash
-  # 최신 데이터 수집, 모델 미세조정, 추천 및 급등 예측 생성을 모두 수행합니다.
-  python main.py --mode daily
-  ```
+- **📈 동적 패턴 분석 (Dynamic Pattern Analysis)**
+  - DTW(Dynamic Time Warping) 알고리즘을 활용하여, 시장 주도주의 과거 '급등 준비 패턴'을 현재 시점에서 유사하게 따라가는 '추종 코인'을 효과적으로 발굴합니다.
+  - *단순히 가격이 오르는 종목을 찾는 것을 넘어, 특정 '급등 전 매집 패턴'을 학습하여 선행 매매 기회를 찾습니다.*
 
-- **급등 예측만 실행:**
-  ```bash
-  # 급등 예측 모델을 사용하여 현재 시장의 급등 가능성 코인을 찾습니다.
-  python main.py --mode find-pumps
-  ```
+- **👁️ 멀티스케일 특징 추출 (Multi-Scale Feature Extraction)**
+  - 단일 CNN을 넘어, 여러 크기의 커널을 사용하는 `Multi-Scale CNN` 아키텍처를 도입하여 짧은 패턴과 중간 길이의 패턴을 동시에 포착하고 분석합니다.
+  - *이를 통해 급격한 가격 변화와 점진적인 추세 변화를 모두 모델링에 반영할 수 있습니다.*
 
-## 📈 전체 예측 정확도 분석 방법
+- **⚙️ 적응형 시장 분석 (Adaptive Market Analysis)**
+  - 시장 상황에 따라 BTC/ETH 시장 지수 가중치를 동적으로 조절하고, 학습 데이터 기간을 유연하게 확장하여 시장 변화에 더 빠르게 적응합니다.
+  - *고정된 값 대신, 최근 30일 거래대금 등을 반영하여 시장의 현재 영향력을 가중치에 적용합니다.*
 
-이 프로젝트는 과거에 생성된 모든 예측의 정확도를 종합적으로 분석하는 기능을 제공합니다. 이 과정은 대량의 데이터를 효율적으로 처리하기 위해 다음과 같은 3단계로 구성됩니다.
+- **🛡️ 리스크 관리 추천 (Risk-Managed Recommendations)**
+  - 앙상블 모델의 예측 불확실성(Uncertainty)을 측정하여, 신뢰도가 낮은 추천은 최종 결과에서 자동으로 필터링하여 안정성을 높입니다.
+  - *수익률이 높게 예측되더라도, 모델의 확신이 부족한 경우는 추천에서 제외하여 위험을 관리합니다.*
 
-1.  **전체 예측 데이터 통합**
-    *   `recommendations/` 폴더에 흩어져 있는 모든 `recs_*.csv` 파일들을 `all_predictions.csv`라는 하나의 파일로 통합합니다.
+<br>
 
-2.  **전체 가격 데이터 추출**
-    *   `crypto_data.db` 데이터베이스에서 모든 시세 데이터를 `all_prices.csv` 파일로 한 번에 추출합니다.
-
-3.  **통합 데이터 분석**
-    *   위에서 생성된 두 개의 대용량 CSV 파일(`all_predictions.csv`, `all_prices.csv`)을 읽어, 각 예측에 대한 실제 결과를 매칭하고, 전체 예측에 대한 평균 **방향 정확도(Directional Accuracy)**와 **평균 절대 오차(MAE)**를 계산합니다。
-
-이 과정을 통해 모델의 전체적인 성능을 객관적으로 평가할 수 있습니다.
-
-## 📜 라이선스
-
-이 프로젝트는 MIT 라이선스를 따릅니다. 자세한 내용은 [LICENSE](LICENSE) 파일을 참고하세요。
+## ⚙️ 일일 워크플로우 (`daily` mode)
+1.  **시장 스크리닝:** 최근 거래량과 가격 변동성을 기반으로 주목할 만한 'Trending' 코인 선정.
+2.  **모델 강화 학습:** 선정된 코인의 최신 데이터로 트렌드 예측 모델(Transformer+GAN)과 급등 예측 모델(XGBoost)을 파인튜닝.
+3.  **1차 예측 (Trending):** 강화된 모델로 'Trending' 코인들의 미래 가격 패턴 예측.
+4.  **2차 예측 (Pattern):** 가장 강력한 'Trending' 코인을 주도주로 선정, 주도주의 과거 패턴과 유사한 'Pattern' 코인 탐색 및 예측.
+5.  **최종 추천:** 두 전략의 모든 예측 결과를 신뢰도 순으로 정렬하고, 불확실성 필터를 거쳐 최종 تريد 목록 생성.
+6.  **급등 예측:** 전체 시장을 대상으로 단기 급등 가능성이 높은 코인 별도 탐색 및 결과 제공.
